@@ -1,50 +1,87 @@
 <script setup>
-  import { ref, onMounted } from 'vue';
-  import api from '@/plugins/axios';
+import { ref, onMounted } from 'vue';
+import api from '@/plugins/axios';
+import Loading from 'vue-loading-overlay';
+import 'vue-loading-overlay/dist/css/index.css';
 
-  const genres = ref([]);
-  const movies = ref([]);
+const isLoading = ref(false);
+const genres = ref([]);
+const movies = ref([]);
 
-  const listMovies = async (genreId) => {
-      const response = await api.get('discover/movie', {
-          params: {
-              with_genres: genreId,
-              language: 'pt-BR'
-          }
-      });
-      movies.value = response.data.results
-  };
-  onMounted(async () => {
+const listMovies = async (genreId) => {
+  try {
+    isLoading.value = true;
+    const response = await api.get('discover/movie', {
+      params: {
+        with_genres: genreId,
+        language: 'pt-BR',
+      },
+    });
+    movies.value = response.data.results;
+  } catch (error) {
+    console.error('Erro ao buscar filmes:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const getGenreName = (id) => {
+  const genero = genres.value.find((genre) => genre.id === id);
+  return genero ? genero.name : 'Desconhecido';
+};
+
+const formatDate = (date) => new Date(date).toLocaleDateString('pt-BR');
+
+onMounted(async () => {
+  try {
     const response = await api.get('genre/movie/list?language=pt-BR');
     genres.value = response.data.genres;
-  });
-
+  } catch (error) {
+    console.error('Erro ao buscar gêneros:', error);
+  }
+});
 </script>
 <template>
-  <h1>Filmes</h1>
-  <ul class="genre-list">
-     <li
-    v-for="genre in genres"
-    :key="genre.id"
-    @click="listMovies(genre.id)"
-    class="genre-item"
-  >
-    {{ genre.name }}
-  </li>
-  </ul>
-  <div class="movie-list">
-  <div v-for="movie in movies" :key="movie.id" class="movie-card">
-    <img
-      :src="`https://image.tmdb.org/t/p/w500${movie.poster_path}`"
-      :alt="movie.title"
-    />
-    <div class="movie-details">
-      <p class="movie-title">{{ movie.title }}</p>
-      <p class="movie-release-date">{{ movie.release_date }}</p>
-      <p class="movie-genres">{{ movie.genre_ids }}</p>
+  <div>
+    <h1>Filmes</h1>
+    <ul class="genre-list">
+      <li
+        v-for="genre in genres"
+        :key="genre.id"
+        @click="listMovies(genre.id)"
+        class="genre-item"
+      >
+        {{ genre.name }}
+      </li>
+    </ul>
+
+    <loading v-model:active="isLoading" is-full-page />
+
+    <div class="movie-list">
+      <div v-for="movie in movies" :key="movie.id" class="movie-card">
+        <img
+          v-if="movie.poster_path"
+          :src="`https://image.tmdb.org/t/p/w500${movie.poster_path}`"
+          :alt="movie.title"
+        />
+        <div class="movie-details">
+          <p class="movie-title">{{ movie.title }}</p>
+          <p class="movie-release-date">{{ formatDate(movie.release_date) }}</p>
+
+          <p class="movie-genres">
+            <span
+              v-for="genre_id in movie.genre_ids"
+              :key="genre_id"
+              class="genre-tag"
+              @click="listMovies(genre_id)"
+            >
+              {{ getGenreName(genre_id) }}
+            </span>
+          </p>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 </template>
 <style scoped>
 .genre-list {
@@ -55,10 +92,6 @@
   list-style: none;
   margin-bottom: 2rem;
 }
-
-
-
-
 .genre-item {
   background-color: #387250;
   border-radius: 1rem;
@@ -101,5 +134,28 @@
   font-weight: bold;
   line-height: 1.3rem;
   height: 3.2rem;
+}
+.movie-genres {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.movie-genres span {
+  background-color: #748708;
+  border-radius: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.movie-genres span:hover {
+  cursor: pointer;
+  background-color: #455a08;
+  box-shadow: 0 0 0.5rem #748708;
 }
 </style>
