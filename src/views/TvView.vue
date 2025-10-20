@@ -11,13 +11,16 @@ const shows = ref([]);
 
 const listShows = async (genreId) => {
   try {
+    genreStore.setCurrentGenreId(genreId);
     isLoading.value = true;
+
     const response = await api.get('discover/tv', {
       params: {
         with_genres: genreId,
         language: 'pt-BR',
       },
     });
+
     shows.value = response.data.results;
   } catch (error) {
     console.error('Erro ao buscar programas de TV:', error);
@@ -26,7 +29,10 @@ const listShows = async (genreId) => {
   }
 };
 
-const formatDate = (date) => new Date(date).toLocaleDateString('pt-BR');
+const formatDate = (date) => {
+  if (!date) return 'Data desconhecida';
+  return new Date(date).toLocaleDateString('pt-BR');
+};
 
 onMounted(async () => {
   try {
@@ -49,6 +55,7 @@ onMounted(async () => {
         :key="genre.id"
         @click="listShows(genre.id)"
         class="genre-item"
+        :class="{ active: genre.id === genreStore.currentGenreId }"
       >
         {{ genre.name }}
       </li>
@@ -61,10 +68,11 @@ onMounted(async () => {
           :src="`https://image.tmdb.org/t/p/w500${show.poster_path}`"
           :alt="show.name"
         />
-
         <div class="tv-details">
           <p class="tv-title">{{ show.name }}</p>
-          <p class="tv-original-name">({{ show.original_name }})</p>
+          <p class="tv-original-name" v-if="show.original_name !== show.name">
+            ({{ show.original_name }})
+          </p>
           <p class="tv-date">{{ formatDate(show.first_air_date) }}</p>
 
           <p class="tv-genres">
@@ -72,6 +80,7 @@ onMounted(async () => {
               v-for="genre_id in show.genre_ids"
               :key="genre_id"
               @click="listShows(genre_id)"
+              :class="{ active: genre_id === genreStore.currentGenreId }"
               class="genre-tag"
             >
               {{ genreStore.getGenreName(genre_id) }}
@@ -161,5 +170,15 @@ onMounted(async () => {
   cursor: pointer;
   background-color: #455a08;
   box-shadow: 0 0 0.5rem #748708;
+}
+.active {
+  background-color: #abc322;
+  font-weight: bolder;
+}
+
+.tv-genres span.active {
+  background-color: #abc322;
+  color: #000;
+  font-weight: bolder;
 }
 </style>
