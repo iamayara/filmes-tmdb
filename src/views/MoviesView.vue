@@ -4,7 +4,9 @@ import api from '@/plugins/axios';
 import Loading from 'vue-loading-overlay';
 import 'vue-loading-overlay/dist/css/index.css';
 import { useGenreStore } from '@/stores/genre';
+import { useRouter } from 'vue-router';
 
+const router = useRouter()
 const genreStore = useGenreStore();
 const isLoading = ref(false);
 const movies = ref([]);
@@ -29,7 +31,10 @@ const listMovies = async (genreId) => {
 
 const formatDate = (date) =>
   date ? new Date(date).toLocaleDateString('pt-BR') : 'Data não informada';
-
+  
+function openMovie(movieId) {
+  router.push({ name: 'MovieDetails', params: { movieId } });
+}
 onMounted(async () => {
   try {
     isLoading.value = true;
@@ -59,10 +64,10 @@ onMounted(async () => {
     <div class="movie-list">
       <div v-for="movie in movies" :key="movie.id" class="movie-card">
         <img
-          v-if="movie.poster_path"
-          :src="`https://image.tmdb.org/t/p/w500${movie.poster_path}`"
-          :alt="movie.title"
-        />
+  :src="`https://image.tmdb.org/t/p/w500${movie.poster_path}`"
+  :alt="movie.title"
+  @click="openMovie(movie.id)"
+/>
         <div class="movie-details">
           <p class="movie-title">{{ movie.title }}</p>
           <p class="movie-release-date">{{ formatDate(movie.release_date) }}</p>
