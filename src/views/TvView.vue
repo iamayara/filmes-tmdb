@@ -4,7 +4,9 @@ import api from '@/plugins/axios';
 import Loading from 'vue-loading-overlay';
 import 'vue-loading-overlay/dist/css/index.css';
 import { useGenreStore } from '@/stores/genre';
+import { useRouter } from 'vue-router';
 
+const router = useRouter();
 const genreStore = useGenreStore();
 const isLoading = ref(false);
 const shows = ref([]);
@@ -13,14 +15,12 @@ const listShows = async (genreId) => {
   try {
     genreStore.setCurrentGenreId(genreId);
     isLoading.value = true;
-
     const response = await api.get('discover/tv', {
       params: {
         with_genres: genreId,
         language: 'pt-BR',
       },
     });
-
     shows.value = response.data.results;
   } catch (error) {
     console.error('Erro ao buscar programas de TV:', error);
@@ -29,10 +29,13 @@ const listShows = async (genreId) => {
   }
 };
 
-const formatDate = (date) => {
-  if (!date) return 'Data desconhecida';
-  return new Date(date).toLocaleDateString('pt-BR');
-};
+const formatDate = (date) =>
+  date ? new Date(date).toLocaleDateString('pt-BR') : 'Data não informada';
+
+function openShow(showId) {
+  router.push({ name: 'ShowDetails', params: { showId } });
+}
+
 
 onMounted(async () => {
   try {
@@ -45,7 +48,6 @@ onMounted(async () => {
   }
 });
 </script>
-
 <template>
   <div>
     <h1>Programas de TV</h1>
@@ -64,15 +66,12 @@ onMounted(async () => {
     <div class="tv-list">
       <div v-for="show in shows" :key="show.id" class="tv-card">
         <img
-          v-if="show.poster_path"
           :src="`https://image.tmdb.org/t/p/w500${show.poster_path}`"
           :alt="show.name"
+          @click="openShow(show.id)"
         />
         <div class="tv-details">
           <p class="tv-title">{{ show.name }}</p>
-          <p class="tv-original-name" v-if="show.original_name !== show.name">
-            ({{ show.original_name }})
-          </p>
           <p class="tv-date">{{ formatDate(show.first_air_date) }}</p>
 
           <p class="tv-genres">
@@ -81,7 +80,6 @@ onMounted(async () => {
               :key="genre_id"
               @click="listShows(genre_id)"
               :class="{ active: genre_id === genreStore.currentGenreId }"
-              class="genre-tag"
             >
               {{ genreStore.getGenreName(genre_id) }}
             </span>
